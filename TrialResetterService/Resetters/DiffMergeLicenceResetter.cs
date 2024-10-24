@@ -6,7 +6,7 @@ public class DiffMergeLicenceResetter
 {
 	private static TimeSpan _rescanKeyTimeSpan = TimeSpan.FromMinutes(59); // 1 hour popup
 
-	private RegistryKey? _licenceRegKey;
+	private List<RegistryKey> _licenceRegKeys = [];
 	private DateTimeOffset _lastRescanKeyTimeUtc;
 
 	public DiffMergeLicenceResetter()
@@ -17,20 +17,30 @@ public class DiffMergeLicenceResetter
 	private void RescanRegKey()
 	{
 		_lastRescanKeyTimeUtc = DateTimeOffset.UtcNow;
-		_licenceRegKey = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64);
-		_licenceRegKey = _licenceRegKey.OpenSubKey("Software\\SourceGear\\SourceGear DiffMerge\\License", true);
+
+		_licenceRegKeys.Clear();
+
+		foreach (var sid in Registry.Users.GetSubKeyNames())
+		{
+			var key = Registry.Users.OpenSubKey($"{sid}\\Software\\SourceGear\\SourceGear DiffMerge\\License", true);
+			if (key is not null)
+			{
+				_licenceRegKeys.Add(key);
+			}
+        }
 	}
 
 	public void Update()
 	{
-		if (_licenceRegKey is null)
-		{
-			if (DateTimeOffset.UtcNow.Subtract(_lastRescanKeyTimeUtc) < _rescanKeyTimeSpan) return;
+		if (DateTimeOffset.UtcNow.Subtract(_lastRescanKeyTimeUtc) >= _rescanKeyTimeSpan)
+		{ 
 			RescanRegKey();
-			return;
 		}
 
 		var newLicenceTime = DateTimeOffset.Now.ToUnixTimeSeconds();
-		_licenceRegKey.SetValue("Check", unchecked((int)newLicenceTime), RegistryValueKind.DWord);
+		foreach (var key in _licenceRegKeys)
+		{
+			key.SetValue("Check", unchecked((int)newLicenceTime), RegistryValueKind.DWord);
+		}
 	}
 }

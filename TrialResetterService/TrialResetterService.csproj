@@ -18,6 +18,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Update="Scripts\DeleteService.bat">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
 	  <None Update="Scripts\InstallService.bat">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>

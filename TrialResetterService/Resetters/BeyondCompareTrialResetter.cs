@@ -5,8 +5,8 @@ namespace Gidsiks.TrialReseterService.Resetters;
 public class BeyondCompareTrialResetter
 { 
 	private static TimeSpan _rescanKeyTimeSpan = TimeSpan.FromDays(29); // 30 day trial time
-	
-	private RegistryKey? _licenceRegKey;
+
+	private List<RegistryKey> _licenceRegKeys = [];
 	private DateTimeOffset _lastRescanKeyTimeUtc;
 
 	public BeyondCompareTrialResetter()
@@ -17,20 +17,30 @@ public class BeyondCompareTrialResetter
 	private void RescanRegKey()
 	{
 		_lastRescanKeyTimeUtc = DateTimeOffset.UtcNow;
-		_licenceRegKey = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64);
-		_licenceRegKey = _licenceRegKey.OpenSubKey("Software\\Scooter Software\\Beyond Compare 5", true);
+
+		_licenceRegKeys.Clear();
+
+		foreach (var sid in Registry.Users.GetSubKeyNames())
+		{
+			var key = Registry.Users.OpenSubKey($"{sid}\\Software\\Scooter Software\\Beyond Compare 5", true);
+			if (key is not null)
+			{
+				_licenceRegKeys.Add(key);
+			}
+		}
 	}
 
 	public void Update()
 	{
-		if (_licenceRegKey is null)
+		if (DateTimeOffset.UtcNow.Subtract(_lastRescanKeyTimeUtc) >= _rescanKeyTimeSpan)
 		{
-			if (DateTimeOffset.UtcNow.Subtract(_lastRescanKeyTimeUtc) < _rescanKeyTimeSpan) return;
 			RescanRegKey();
-			return;
 		}
-		
-		if (_licenceRegKey.GetValueNames().Contains("CacheID"))
-			_licenceRegKey.DeleteValue("CacheID");
+
+		foreach (var key in _licenceRegKeys)
+		{
+			if (key.GetValueNames().Contains("CacheID"))
+				key.DeleteValue("CacheID");
+		}
 	}
 }
