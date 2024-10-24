@@ -1,0 +1,1 @@
+sc.exe create "Gidsiks Trial Resetter" binpath="%~dp0TrialResetterService.exe" start=auto
